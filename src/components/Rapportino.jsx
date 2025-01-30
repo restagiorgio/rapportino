@@ -26,12 +26,21 @@ const Rapportino = () => {
     ];
 
     const attivitaPossibili = [
-        'Sviluppo Frontend',
-        'Sviluppo Backend',
-        'Testing',
-        'Documentazione',
-        'Meeting',
-        'Supporto Cliente',
+        'Miglioramento delle performance e della scalabilità',
+        'Implementazione di pattern di resilienza e fault tolerance',
+        'Ottimizzazione dei flussi di comunicazione tra i servizi',
+        'Progettazione e implementazione di nuovi microservizi',
+        'Implementazione di validazioni e controlli di business',
+        'Integrazione con il sistema di autenticazione',
+        'Ottimizzazione degli schemi e delle strutture delle tabelle',
+        'Configurazione ambiente Kubernetes',
+        'Definizione dei deployment manifest',
+        'Implementazione di strategie di scaling automatico',
+        'Configurazione degli Ingress e dei file di Secret',
+        'Setup del monitoring e logging',
+        'Refactor e ottimizzazione del codice',
+        'Preparazione ambiente per poc Nutanix',
+        'Sviluppo microservizio Protocollo Webarch',
         ...attivitaPersonalizzate
     ];
 
