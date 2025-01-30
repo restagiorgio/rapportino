@@ -2,6 +2,7 @@ import React from 'react'
 import Rapportino from './components/Rapportino'
 
 function App() {
+    console.log('App.jsx caricato');
     const headerStyle = {
         backgroundColor: '#1a237e',
         color: 'white',

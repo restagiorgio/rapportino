@@ -11,6 +11,8 @@ const Rapportino = () => {
     const [nuovaAttivita, setNuovaAttivita] = useState('');
     const [attivitaPersonalizzate, setAttivitaPersonalizzate] = useState([]);
 
+    console.log('Rapportino.jsx caricato');
+
     const mesi = [
         { value: '1', label: 'Gennaio' },
         { value: '2', label: 'Febbraio' },

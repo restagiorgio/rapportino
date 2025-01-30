@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 
+console.log('Main.jsx caricato');
 // Aggiungi questa funzione per gestire il localStorage
 const checkStorage = () => {
     try {
