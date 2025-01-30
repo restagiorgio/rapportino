@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
 
+import ExcelJS from 'exceljs';
 const Rapportino = () => {
     const [nome, setNome] = useState('');
     const [cognome, setCognome] = useState('');
@@ -8,10 +8,7 @@ const Rapportino = () => {
     const [anno, setAnno] = useState(new Date().getFullYear());
     const [giorniLavorativi, setGiorniLavorativi] = useState([]);
     const [mostraTabella, setMostraTabella] = useState(false);
-    const [nuovaAttivita, setNuovaAttivita] = useState('');
     const [attivitaPersonalizzate, setAttivitaPersonalizzate] = useState([]);
-
-    console.log('Rapportino.jsx caricato');
 
     const mesi = [
         { value: '1', label: 'Gennaio' },
@@ -128,31 +125,128 @@ const Rapportino = () => {
         setGiorniLavorativi(nuoviGiorni);
     };
 
-    const exportToExcel = () => {
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet([
-            ['RAPPORTINO ORE LAVORATE '+mesi.find(m => m.value === mese)?.label, ' '+ anno.toString()],
-            [],
-            ['Data', 'Tipo Giorno', 'Ore Lavorate', 'Attività', 'Note', ''],
-        ]);
+    const validazioneCompletezza = () => {
+        const giorniConOreMancantiSolamente = giorniLavorativi.filter(giorno =>
+            !giorno.festivo &&
+            (!giorno.oreLavorate || giorno.oreLavorate === '') &&
+            giorno.attivita // ha l'attività ma non le ore
+        );
 
-        // Unisci le celle del titolo
-        ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }
-        ];
+        const giorniConAttivitaMancantiSolamente = giorniLavorativi.filter(giorno =>
+            !giorno.festivo &&
+            giorno.oreLavorate && // ha le ore ma non l'attività
+            (!giorno.attivita || giorno.attivita === '')
+        );
 
-        // Aggiungi i giorni
-        const datiGiorni = giorniLavorativi.map(giorno => [
-            giorno.data.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' }),
-            giorno.tipo,
-            giorno.festivo ? '' : (giorno.oreLavorate || ''),
-            giorno.festivo ? '' : (giorno.attivita || ''),
-            '',
-            ''
-        ]);
+        const giorniConEntrambiMancanti = giorniLavorativi.filter(giorno =>
+            !giorno.festivo &&
+            (!giorno.oreLavorate || giorno.oreLavorate === '') &&
+            (!giorno.attivita || giorno.attivita === '')
+        );
+
+        let messaggi = [];
+
+        if (giorniConOreMancantiSolamente.length > 0) {
+            const date = giorniConOreMancantiSolamente
+                .map(g => g.data.toLocaleDateString('it-IT'))
+                .join(', ');
+            messaggi.push(`Mancano le ore per i giorni: ${date}`);
+        }
+
+        if (giorniConAttivitaMancantiSolamente.length > 0) {
+            const date = giorniConAttivitaMancantiSolamente
+                .map(g => g.data.toLocaleDateString('it-IT'))
+                .join(', ');
+            messaggi.push(`Manca l'attività per i giorni: ${date}`);
+        }
+
+        /*if (giorniConEntrambiMancanti.length > 0) {
+            const date = giorniConEntrambiMancanti
+                .map(g => g.data.toLocaleDateString('it-IT'))
+                .join(', ');
+            messaggi.push(`Mancano sia ore che attività per i giorni: ${date}`);
+        }*/
+
+        if (messaggi.length > 0) {
+            alert(messaggi.join('\n\n'));
+            return false;
+        }
+
+        return true;
+    };
+
+
+    const exportToExcel = async () => {
+        if (!validazioneCompletezza()) {
+            return; // Interrompe l'esportazione se la validazione fallisce
+        }
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Rapportino');
+
+        // Imposta il titolo
+        worksheet.mergeCells('A1:F1');
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = 'RAPPORTINO ORE LAVORATE ' + mesi.find(m => m.value === mese)?.label + ' ' + anno.toString();
+        titleCell.font = { bold: true, size: 14 };
+        titleCell.alignment = { horizontal: 'center' };
+
+        // Aggiungi righe vuote
+        worksheet.addRow([]);
+        worksheet.addRow([]);
+
+        // Aggiungi intestazioni
+        const headers = ['Data', 'Tipo Giorno', 'Ore Lavorate', 'Attività', 'Note'];
+        const headerRow = worksheet.addRow(headers);
+
+        // Stile intestazioni
+        headerRow.eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF1A237E' } // FF all'inizio per l'opacità
+            };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        });
 
         // Aggiungi i dati dei giorni
-        XLSX.utils.sheet_add_aoa(ws, datiGiorni, { origin: 'A6' });
+        giorniLavorativi.forEach(giorno => {
+            const row = worksheet.addRow([
+                giorno.data.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+                giorno.tipo,
+                giorno.festivo ? '' : (giorno.oreLavorate || ''),
+                giorno.festivo ? '' : (giorno.attivita || ''),
+                '',
+            ]);
+
+            // Aggiungi stile alle celle
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+                cell.alignment = { vertical: 'middle' };
+            });
+
+            // Aggiungi sfondo grigio per i giorni festivi
+            if (giorno.festivo) {
+                row.eachCell((cell) => {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFB0B0B0' }
+                    };
+                });
+            }
+        });
 
         // Calcola i totali
         const totaleOre = giorniLavorativi.reduce((acc, curr) =>
@@ -161,22 +255,53 @@ const Rapportino = () => {
         const giorniFeriali = giorniLavorativi.filter(g => !g.festivo && g.data.getDay() !== 0 && g.data.getDay() !== 6).length;
         const mediaOreGiornaliere = totaleOre / giorniLavorativi.length;
 
-        // Aggiungi riepiloghi
-        const rigaInizioRiepiloghi = giorniLavorativi.length + 8;
-        XLSX.utils.sheet_add_aoa(ws, [
-            [],
-            ['', 'Totale Ore:', totaleOre.toFixed(2)],
-            [],
-            ['RESOCONTO MENSILE'],
-            ['', 'Giorni Lavorativi:', giorniFeriali.toString()],
-            ['', 'Totale Giorni:', giorniLavorativi.length.toString()],
-            [],
-            ['', 'Media Ore Giornaliere:', mediaOreGiornaliere.toFixed(2)],
-            [],
-            ['RESOCONTO ORE PER ATTIVITÀ']
-        ], { origin: `A${rigaInizioRiepiloghi}` });
+        // Aggiungi riga vuota
+        worksheet.addRow([]);
 
-        // Calcola ore per attività
+        // Aggiungi riepiloghi
+        //worksheet.mergeCells('B37:C37');
+        const totOre = worksheet.getCell('B37');
+        totOre.value = 'Totale Ore: ' + totaleOre.toFixed(2);
+        totOre.font = { bold: true, size: 14 };
+        totOre.alignment = { horizontal: 'center' };
+
+        //worksheet.addRow(['', 'Totale Ore:', totaleOre.toFixed(2)]);
+        worksheet.addRow([]);
+        const rowResocontoMensile = worksheet.addRow(['RESOCONTO MENSILE']);
+        rowResocontoMensile.font = { bold: true };
+        for(let i = 1; i <= 3; i++) {
+            const cell = rowResocontoMensile.getCell(i);
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF7FB5C5' }
+            };
+            // Se vuoi applicare anche altri stili alla cella
+            cell.font = { bold: true };
+        }
+        worksheet.mergeCells(`A${rowResocontoMensile.number}:C${rowResocontoMensile.number}`);
+
+        worksheet.addRow(['', 'Giorni Lavorativi:', parseFloat(giorniFeriali).toFixed(2)]);
+        worksheet.addRow(['', 'Totale Giorni:', parseFloat(giorniLavorativi.length).toFixed(2)]);
+        worksheet.addRow([]);
+        worksheet.addRow(['', 'Media Ore Giornaliere:', mediaOreGiornaliere.toFixed(2)]);
+        worksheet.addRow([]);
+
+        const rowResocontoAttivita = worksheet.addRow(['RESOCONTO ORE PER ATTIVITÀ']);
+        rowResocontoAttivita.font = { bold: true };
+        for(let i = 1; i <= 3; i++) {
+            const cell = rowResocontoAttivita.getCell(i);
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF7FB5C5' }
+            };
+            // Se vuoi applicare anche altri stili alla cella
+            cell.font = { bold: true };
+        }
+        worksheet.mergeCells(`A${rowResocontoAttivita.number}:C${rowResocontoAttivita.number}`);
+
+        // Calcola e aggiungi ore per attività
         const orePerAttivita = {};
         giorniLavorativi.forEach(giorno => {
             if (giorno.attivita && giorno.oreLavorate) {
@@ -184,26 +309,28 @@ const Rapportino = () => {
             }
         });
 
-        // Aggiungi resoconto attività
-        const attivitaRows = Object.entries(orePerAttivita).map(([attivita, ore]) =>
-            ['', attivita, ore.toFixed(2)]
-        );
-        XLSX.utils.sheet_add_aoa(ws, attivitaRows, { origin: `A${rigaInizioRiepiloghi + 15}` });
+        Object.entries(orePerAttivita).forEach(([attivita, ore]) => {
+            worksheet.addRow(['', attivita, ore.toFixed(2)]);
+        });
 
         // Imposta larghezza colonne
-        ws['!cols'] = [
-            { wch: 12 }, // Data
-            { wch: 15 }, // Tipo Giorno
-            { wch: 15 }, // Ore Lavorate
-            { wch: 50 }, // Attività
-            { wch: 20 }, // Note
-            { wch: 10 }, // Spazio vuoto
-            { wch: 15 }  // Legenda
+        worksheet.columns = [
+            { width: 12 }, // Data
+            { width: 15 }, // Tipo Giorno
+            { width: 15 }, // Ore Lavorate
+            { width: 50 }, // Attività
+            { width: 20 }, // Note
         ];
 
-        // Aggiungi il foglio al workbook e salva
-        XLSX.utils.book_append_sheet(wb, ws, 'Rapportino');
-        XLSX.writeFile(wb, `Rapportino ${mesi.find(m => m.value === mese)?.label} ${anno} ${nome} ${cognome}.xlsx`);
+        // Genera il file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Rapportino ${mesi.find(m => m.value === mese)?.label} ${anno} ${nome} ${cognome}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
     };
 
 
@@ -222,14 +349,15 @@ const Rapportino = () => {
         marginBottom: '10px',
         border: '1px solid #ccc',
         borderRadius: '4px',
-        fontSize: '14px'
+        fontSize: '17px'
     };
 
     const labelStyle = {
         display: 'block',
         marginBottom: '5px',
         color: '#333',
-        fontWeight: '500'
+        fontWeight: '500',
+        fontSize: '17px'
     };
 
     const buttonStyle = {
@@ -240,7 +368,7 @@ const Rapportino = () => {
         borderRadius: '4px',
         cursor: 'pointer',
         transition: 'background-color 0.3s',
-        fontSize: '14px',
+        fontSize: '17px',
         fontWeight: '500'
     };
 
@@ -265,14 +393,14 @@ const Rapportino = () => {
         padding: '12px 8px',
         textAlign: 'left',
         fontWeight: '500',
-        fontSize: '14px'
+        fontSize: '20px'
     };
 
     const cellStyle = {
         border: '1px solid #e0e0e0',
         padding: '12px 8px',
         textAlign: 'left',
-        fontSize: '14px'
+        fontSize: '17px'
     };
 
     const festivoStyle = {
@@ -428,6 +556,8 @@ const Rapportino = () => {
                         </table>
                     </div>
                 )}
+
+
             </div>
         </>
     );
