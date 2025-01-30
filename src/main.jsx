@@ -3,24 +3,12 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 
-console.log('Main.jsx caricato');
-// Aggiungi questa funzione per gestire il localStorage
-const checkStorage = () => {
-    try {
-        localStorage.setItem('test', 'test');
-        localStorage.removeItem('test');
-        return true;
-    } catch (e) {
-        return false;
-    }
-};
-
-// Pulisci il localStorage se siamo in produzione e c'è un problema
-if (import.meta.env.PROD && !checkStorage()) {
-    console.warn('Storage non disponibile in questo contesto');
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+    throw new Error('Failed to find the root element');
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
         <App />
     </React.StrictMode>,
