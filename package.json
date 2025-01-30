@@ -8,7 +8,8 @@
     "name": "Your Name",
     "email": "your.email@example.com"
   },
-  "homepage": "https://restagiorgio.github.io/rapportino/",
+  "homepage": "http://dppp.rapportino/",
+//  "homepage": "https://restagiorgio.github.io/rapportino/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

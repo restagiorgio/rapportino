@@ -133,7 +133,6 @@ const Rapportino = () => {
         const ws = XLSX.utils.aoa_to_sheet([
             ['RAPPORTINO ORE LAVORATE '+mesi.find(m => m.value === mese)?.label, ' '+ anno.toString()],
             [],
-            [],
             ['Data', 'Tipo Giorno', 'Ore Lavorate', 'Attività', 'Note', ''],
         ]);
 
@@ -165,7 +164,6 @@ const Rapportino = () => {
         // Aggiungi riepiloghi
         const rigaInizioRiepiloghi = giorniLavorativi.length + 8;
         XLSX.utils.sheet_add_aoa(ws, [
-            [],
             [],
             ['', 'Totale Ore:', totaleOre.toFixed(2)],
             [],
